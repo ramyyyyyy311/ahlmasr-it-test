@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="robots" content="noindex,nofollow">
+<title>Ahl Masr Burn Hospital - IT Help Desk Assessment</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --bad:#ef4444; }
+  * { box-sizing:border-box; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+  input { -webkit-user-select:text; user-select:text; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  .wrap { max-width:720px; margin:0 auto; padding:16px; }
+  .card { background:var(--card); border-radius:14px; padding:20px; margin-bottom:14px; }
+  h1 { font-size:1.4rem; margin:0 0 6px; }
+  p, li { color:var(--muted); line-height:1.7; }
+  input[type=text] { width:100%; padding:12px; border-radius:10px; border:1px solid #334155; background:#0f172a; color:var(--text); font-size:1rem; margin:10px 0; }
+  button { background:var(--accent); color:#04243a; border:0; border-radius:10px; padding:12px 22px; font-size:1rem; font-weight:700; cursor:pointer; }
+  #timerBar { position:sticky; top:0; z-index:5; background:var(--bg); padding:10px 0; }
+  #timer { font-size:1.5rem; font-weight:800; color:var(--accent); text-align:center; font-variant-numeric:tabular-nums; }
+  #timer.low { color:var(--bad); }
+  .track { height:6px; background:#334155; border-radius:4px; margin-top:6px; overflow:hidden; }
+  #fill { height:100%; width:100%; background:var(--accent); transition:width .5s linear; }
+  .q h3 { margin:0 0 12px; font-size:1.02rem; line-height:1.6; }
+  .opt { display:block; width:100%; text-align:left; background:#0f172a; color:var(--text); border:2px solid #334155; border-radius:10px; padding:12px; margin:8px 0; font-weight:500; line-height:1.5; }
+  .opt.sel { border-color:var(--accent); background:#0c2a3d; }
+  .hidden { display:none !important; }
+  #shield { position:fixed; inset:0; background:var(--bg); z-index:50; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; font-size:1.2rem; }
+  #wm { position:fixed; inset:0; z-index:40; pointer-events:none; overflow:hidden; opacity:.07; font-size:18px; line-height:70px; transform:rotate(-20deg) scale(1.6); word-break:break-all; }
+  .score { font-size:2.4rem; font-weight:800; text-align:center; color:var(--accent); margin:10px 0; }
+  .code { text-align:center; font-family:monospace; font-size:1.1rem; background:#0f172a; padding:10px; border-radius:8px; word-break:break-all; }
+  @media print { body * { display:none !important; } body::after { content:"Printing is disabled"; display:block; } }
+</style>
+</head>
+<body>
+<div id="shield" class="hidden">Return to the exam page. Leaving the page is being recorded. ⚠️</div>
+<div id="wm" class="hidden"></div>
+
+<div class="wrap">
+  <!-- Start screen -->
+  <div id="start" class="card">
+    <div style="background:#fff;border-radius:12px;padding:10px;margin-bottom:14px;text-align:center">
+      <img src="logo.png" alt="Ahl Masr Burn Hospital" style="max-width:100%;max-height:90px" onerror="this.style.display='none'" draggable="false">
+    </div>
+    <h1>Ahl Masr Burn Hospital</h1>
+    <p style="margin:0 0 10px;font-weight:700;color:var(--accent)">IT Help Desk Assessment</p>
+    <ul>
+      <li>10 multiple-choice technical questions[cite: 1].</li>
+      <li>You have <b>3 minutes</b> only. The timer starts as soon as you click "Start"[cite: 1].</li>
+      <li>You can enter <b>only once</b>. If you close or refresh the page, you cannot re-enter[cite: 1].</li>
+      <li>Copying and screenshots are not allowed. Leaving the page is recorded[cite: 1].</li>
+    </ul>
+    <input type="text" id="name" placeholder="Enter your full name" autocomplete="off" maxlength="60">
+    <button id="startBtn">Start Exam</button>
+  </div>
+
+  <!-- Blocked -->
+  <div id="blocked" class="card hidden">
+    <h1>⛔ Access Denied</h1>
+    <p>This assessment can be taken only once, and it has already been used on this device.</p>
+  </div>
+
+  <!-- Exam -->
+  <div id="exam" class="hidden">
+    <div id="timerBar">
+      <div id="timer">03:00</div>
+      <div class="track"><div id="fill"></div></div>
+    </div>
+    <div id="qs"></div>
+    <button id="submitBtn" style="width:100%;margin-bottom:30px">Finish &amp; Submit</button>
+  </div>
+
+  <!-- Result -->
+  <div id="result" class="card hidden">
+    <h1>Submitted ✅</h1>
+    <div class="score" id="scoreTxt"></div>
+    <p id="resMsg"></p>
+    <div class="code" id="codeTxt"></div>
+    <p style="font-size:.85rem">Please send this result code to the HR / IT team.</p>
+  </div>
+</div>
+
+<script>
+/* ============ Settings ============ */
+const EXAM_ID   = "ahl-masr-ithd-v3";   
+const DURATION  = 3 * 60;               
+const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbzVjL4VNPNp2dFgbKF65HSqZdlC8OJ00mmbBDGK5tJcmlW22_1suqLt2MMclTwGdkn2oA/exec"; 
+
+/* ============ Questions (a = index of correct answer, starts at 0) ============ */
+const QUESTIONS = [
+ { q:"A PC has its network cable connected, but ipconfig shows 169.254.x.x while other PCs in the same VLAN work normally. What is the most likely cause?",
+   o:["The PC failed to obtain a lease from the DHCP server",
+      "The DNS server has a wrong forwarder",
+      "The default gateway is offline",
+      "The PC has a wrong subnet mask configured manually"], a:0 },
+
+ { q:"A user can ping a file server by its IP address, but ping by hostname fails. Which command best confirms a name resolution problem?",
+   o:["tracert 8.8.8.8",
+      "nslookup servername",
+      "netstat -an",
+      "ipconfig /release"], a:1 },
+
+ { q:"A PC with IP 192.168.1.10 / 255.255.255.0 can reach local devices but cannot reach 192.168.2.20. Which setting is most likely missing or wrong?",
+   o:["DNS suffix",
+      "Default gateway",
+      "MAC address",
+      "Hostname"], a:1 },
+
+ { q:"Ping to a Windows server works, but Remote Desktop (RDP) to it fails. Which TCP port should you verify is allowed on the firewall?",
+   o:["TCP 22",
+      "TCP 443",
+      "TCP 3389",
+      "TCP 25"], a:2 },
+
+ { q:"After a Windows update, a PC shows random errors and applications crash. Which command checks and repairs corrupted system files?",
+   o:["gpupdate /force",
+      "sfc /scannow",
+      "ipconfig /flushdns",
+      "net user"], a:1 },
+
+ { q:"A user's Active Directory account keeps getting locked out a few minutes after he changes his password. What is the most likely cause?",
+   o:["An old password is still saved on another device (e.g. phone email or mapped drive)",
+      "The PC has too little RAM",
+      "The monitor driver is outdated",
+      "The DHCP scope is full"], a:0 },
+
+ { q:"A new Group Policy maps a network drive, but a user's PC does not show it. Which action should you try first?",
+   o:["Reinstall Windows",
+      "Run gpupdate /force, then log off and log on again",
+      "Replace the network cable",
+      "Run chkdsk /r"], a:1 },
+
+ { q:"A PC powers on but gives repeated beeps and shows no display. Which hardware step is the best first check?",
+   o:["Reseat the RAM modules",
+      "Reinstall Microsoft Office",
+      "Update the antivirus definitions",
+      "Run gpresult /r"], a:0 },
+
+ { q:"In Outlook, a user can receive emails but cannot send them. Which protocol is responsible for SENDING mail?",
+   o:["IMAP",
+      "POP3",
+      "SMTP",
+      "SNMP"], a:2 },
+
+ { q:"Two devices are on different VLANs and cannot communicate with each other. Which device is needed to route traffic between the VLANs?",
+   o:["A Layer 2 switch only",
+      "A Layer 3 switch or router",
+      "A network hub",
+      "A patch panel"], a:1 }
+];
+
+/* ============ Helpers ============ */
+const $ = id => document.getElementById(id);
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const KEY = "exam_used_" + EXAM_ID;
+function wasUsed(){
+  try { if (localStorage.getItem(KEY)) return true; } catch(e){}
+  try { if (sessionStorage.getItem(KEY)) return true; } catch(e){}
+  return document.cookie.split(";").some(c => c.trim().startsWith(KEY+"="));
+}
+function markUsed(){
+  const v = String(Date.now());
+  try { localStorage.setItem(KEY, v); } catch(e){}
+  try { sessionStorage.setItem(KEY, v); } catch(e){}
+  document.cookie = KEY + "=" + v + "; max-age=31536000; path=/; SameSite=Lax";
+}
+
+/* ============ Copy protection ============ */
+let examActive = false, leaves = 0, studentName = "";
+const stop = e => { e.preventDefault(); return false; };
+["contextmenu","copy","cut","paste","dragstart","selectstart"].forEach(ev =>
+  document.addEventListener(ev, e => { if (e.target.tagName === "INPUT") return; stop(e); }));
+document.addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  if (e.key === "F12" || e.key === "PrintScreen" ||
+      ((e.ctrlKey || e.metaKey) && ["c","x","a","s","p","u","i","j"].includes(k)) ||
+      ((e.ctrlKey || e.metaKey) && e.shiftKey && ["i","j","c","s"].includes(k))) {
+    stop(e);
+    if (e.key === "PrintScreen") { try { navigator.clipboard.writeText(""); } catch(_){} }
+  }
+});
+document.addEventListener("keyup", e => { if (e.key === "PrintScreen") { try { navigator.clipboard.writeText("Screenshots are not allowed"); } catch(_){} } });
+
+function leftPage(){ if (!examActive) return; leaves++; $("shield").classList.remove("hidden"); }
+function backToPage(){ $("shield").classList.add("hidden"); }
+document.addEventListener("visibilitychange", () => document.hidden ? leftPage() : backToPage());
+window.addEventListener("blur", leftPage);
+window.addEventListener("focus", backToPage);
+window.addEventListener("beforeunload", e => { if (examActive) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ============ Run ============ */
+let order = [], answers = {}, endAt = 0, tick = null;
+
+if (wasUsed()) { $("start").classList.add("hidden"); $("blocked").classList.remove("hidden"); }
+
+$("startBtn").onclick = () => {
+  const n = $("name").value.trim();
+  if (n.length < 3) { alert("Please enter your full name."); return; }
+  if (wasUsed()) { location.reload(); return; }
+  studentName = n;
+  markUsed();                               
+  endAt = Date.now() + DURATION * 1000;     
+  order = shuffle(QUESTIONS.map((_, i) => i)).map(i => ({
+    i, opts: shuffle(QUESTIONS[i].o.map((t, k) => ({ t, ok: k === QUESTIONS[i].a })))
+  }));
+  render();
+  $("start").classList.add("hidden");
+  $("exam").classList.remove("hidden");
+  $("wm").textContent = Array(300).fill(studentName + " • ").join("");
+  $("wm").classList.remove("hidden");
+  examActive = true;
+  tick = setInterval(update, 250);
+  update();
+};
+
+function render(){
+  const box = $("qs"); box.innerHTML = "";
+  order.forEach((item, n) => {
+    const d = document.createElement("div"); d.className = "card q";
+    const h = document.createElement("h3"); h.textContent = (n+1) + ". " + QUESTIONS[item.i].q; d.appendChild(h);
+    item.opts.forEach((o, k) => {
+      const b = document.createElement("button"); b.className = "opt"; b.textContent = String.fromCharCode(65+k) + ". " + o.t;
+      b.onclick = () => {
+        answers[n] = k;
+        [...d.querySelectorAll(".opt")].forEach(x => x.classList.remove("sel"));
+        b.classList.add("sel");
+      };
+      d.appendChild(b);
+    });
+    box.appendChild(d);
+  });
+}
+
+function update(){
+  const left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+  const m = String(Math.floor(left/60)).padStart(2,"0"), s = String(left%60).padStart(2,"0");
+  $("timer").textContent = m + ":" + s;
+  $("timer").classList.toggle("low", left <= 30);
+  $("fill").style.width = (left / DURATION * 100) + "%";
+  if (left <= 0) finish(true);
+}
+
+$("submitBtn").onclick = () => { if (confirm("Are you sure you want to submit?")) finish(false); };
+
+function finish(timeUp){
+  if (!examActive) return;
+  examActive = false; clearInterval(tick);
+  let score = 0;
+  order.forEach((item, n) => { if (answers[n] !== undefined && item.opts[answers[n]].ok) score++; });
+  const total = QUESTIONS.length;
+  const code = (btoa(unescape(encodeURIComponent(studentName))).replace(/[^A-Za-z0-9]/g,"").slice(0,5) +
+               "-" + score + "of" + total + "-L" + leaves + "-" + Date.now().toString(36)).toUpperCase();
+  $("exam").classList.add("hidden"); $("wm").classList.add("hidden"); $("shield").classList.add("hidden");
+  $("result").classList.remove("hidden");
+  $("scoreTxt").textContent = score + " / " + total;
+  $("resMsg").textContent = (timeUp ? "Time is up. Your answers were submitted automatically. " : "") + "Name: " + studentName;
+  $("codeTxt").textContent = code;
+  
+  if (SUBMIT_URL) {
+    try { 
+      fetch(SUBMIT_URL, { 
+        method: "POST", 
+        mode: "no-cors", 
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ 
+          exam: EXAM_ID, 
+          name: studentName, 
+          score: score, 
+          total: total, 
+          leaves: leaves, 
+          timeUp: timeUp, 
+          code: code, 
+          at: new Date().toLocaleString(),
+          answers: order.map((item,n) => ({ 
+            q: item.i+1, 
+            picked: answers[n] !== undefined ? item.opts[answers[n]].t : "", 
+            correct: answers[n] !== undefined && item.opts[answers[n]].ok 
+          })) 
+        }) 
+      }); 
+    } catch(e){}
+  }
+}
+</script>
+</body>
+</html>
